@@ -1,35 +1,44 @@
 package nl.dionsegijn.konfetti.emitters
 
-import nl.dionsegijn.konfetti.models.ConfettiConfig
-import nl.dionsegijn.konfetti.models.LocationModule
-import nl.dionsegijn.konfetti.models.Shape
-import nl.dionsegijn.konfetti.models.Size
-import nl.dionsegijn.konfetti.modules.VelocityModule
-
 /**
- * Created by dionsegijn on 4/2/17.
+ * Created by dionsegijn on 9/03/17.
+ *
+ * BurstEmitter creates all confetti at once when [RenderSystem] is started
  */
-open class BurstEmitter(location: LocationModule, velocity: VelocityModule, sizes: Array<Size>, shapes: Array<Shape>, colors: IntArray, config: ConfettiConfig) : Emitter(location, velocity, sizes, shapes, colors, config) {
+class BurstEmitter: Emitter() {
 
     private var amountOfParticles = 0
-        set(value) { if(value > 1000) field = 1000 else field = value }
-
-    fun burst(amountOfParticles: Int): BurstEmitter {
-        this.amountOfParticles = amountOfParticles
-        for (i in 1..amountOfParticles) {
-            addConfetti()
+        set(value) {
+            field = if(value > 1000) 1000 else value
         }
+
+    private var isStarted = false
+
+    /**
+     * The amount of particles you want to create at once
+     */
+     fun build(amountOfParticles: Int): Emitter {
+        this.amountOfParticles = amountOfParticles
+        isStarted = false
         return this
     }
 
+    /**
+     * Create all confetti when the [RenderSystem] started, only do this once to render all
+     * particles at the same time
+     */
     override fun createConfetti(deltaTime: Float) {
-        // Skip implementation since all confetti is already created
+        if(!isStarted) {
+            isStarted = true
+            for (i in 1..amountOfParticles) {
+                addConfettiFunc?.invoke()
+            }
+        }
     }
 
     /**
-     * Done emitting when all particles disappeared
+     * When the particles are rendered in [createConfetti] the emitter is finished
+     * This is determined by [isStarted], it will only happen once
      */
-    override fun isDoneEmitting(): Boolean {
-        return particles.size == 0
-    }
+    override fun isFinished(): Boolean = isStarted
 }

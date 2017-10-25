@@ -16,7 +16,7 @@ class Confetti(var location: Vector,
                val shape: Shape,
                var lifespan: Long = -1L,
                val fadeOut: Boolean = true,
-               var acceleration: Vector = Vector(0f, 0f),
+               private var acceleration: Vector = Vector(0f, 0f),
                var velocity: Vector = Vector()) {
 
     private val mass = size.mass
@@ -26,6 +26,7 @@ class Confetti(var location: Vector,
     private var rotationSpeed = 1f
     private var rotation = 0f
     private var rotationWidth = width
+    private var rectF = RectF()
 
     // Expected frame rate
     private var speedF = 60f
@@ -39,13 +40,9 @@ class Confetti(var location: Vector,
         paint.color = color
     }
 
-    fun getSize(): Float {
-        return width
-    }
+    private fun getSize(): Float = width
 
-    fun isDead(): Boolean {
-        return alpha <= 0f
-    }
+    fun isDead(): Boolean = alpha <= 0f
 
     fun applyForce(force: Vector) {
         val f = force.copy()
@@ -58,7 +55,7 @@ class Confetti(var location: Vector,
         display(canvas)
     }
 
-    fun update(deltaTime: Float) {
+    private fun update(deltaTime: Float) {
         velocity.add(acceleration)
 
         val v = velocity.copy()
@@ -77,7 +74,7 @@ class Confetti(var location: Vector,
         if (rotationWidth < 0) rotationWidth = width
     }
 
-    fun updateAlpha(deltaTime: Float) {
+    private fun updateAlpha(deltaTime: Float) {
         if (fadeOut) {
             val interval = 5 * deltaTime * speedF
             if (alpha - interval < 0) alpha = 0
@@ -87,7 +84,7 @@ class Confetti(var location: Vector,
         }
     }
 
-    fun display(canvas: Canvas) {
+    private fun display(canvas: Canvas) {
         // if the particle is outside the bottom of the view the lifetime is over.
         if (location.y > canvas.height) {
             lifespan = 0
@@ -111,17 +108,13 @@ class Confetti(var location: Vector,
 
         paint.alpha = alpha
 
-        val rect: RectF = RectF(
-                left,
-                location.y,
-                right,
-                location.y + getSize())
+        rectF.set(left, location.y, right, location.y + getSize())
 
         canvas.save()
-        canvas.rotate(rotation, rect.centerX(), rect.centerY())
+        canvas.rotate(rotation, rectF.centerX(), rectF.centerY())
         when (shape) {
-            Shape.CIRCLE -> canvas.drawOval(rect, paint)
-            Shape.RECT -> canvas.drawRect(rect, paint)
+            Shape.CIRCLE -> canvas.drawOval(rectF, paint)
+            Shape.RECT -> canvas.drawRect(rectF, paint)
         }
         canvas.restore()
     }

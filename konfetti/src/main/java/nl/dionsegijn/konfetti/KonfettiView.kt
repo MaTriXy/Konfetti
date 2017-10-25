@@ -21,22 +21,22 @@ class KonfettiView : View {
     /**
      * Active particle systems
      */
-    val systems: MutableList<ParticleSystem> = mutableListOf()
+    private val systems: MutableList<ParticleSystem> = mutableListOf()
 
     /**
      * Keeping track of the delta time between frame rendering
      */
-    internal var timer: TimerIntegration = TimerIntegration()
+    private var timer: TimerIntegration = TimerIntegration()
 
     /**
      * [OnParticleSystemUpdateListener] listener to notify when a new particle system
      * starts rendering and when a particle system stopped rendering
      */
-    var onParticleSystemUpdateListener: OnParticleSystemUpdateListener? = null
+    private var onParticleSystemUpdateListener: OnParticleSystemUpdateListener? = null
 
-    fun build(): ParticleSystem {
-        return ParticleSystem(this)
-    }
+    fun getActiveSystems() = systems
+
+    fun build(): ParticleSystem = ParticleSystem(this)
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -44,7 +44,7 @@ class KonfettiView : View {
         val deltaTime = timer.getDeltaTime()
         for (i in systems.size - 1 downTo 0) {
             val particleSystem = systems[i]
-            particleSystem.emitter.render(canvas, deltaTime)
+            particleSystem.renderSystem.render(canvas, deltaTime)
             if (particleSystem.doneEmitting()) {
                 systems.removeAt(i)
                 onParticleSystemUpdateListener?.onParticleSystemEnded(this, particleSystem, systems.size)
@@ -65,11 +65,20 @@ class KonfettiView : View {
     }
 
     /**
+     * Abruptly stop all particle systems from rendering
+     * The canvas will stop drawing all particles. Everything that's being rendered will directly
+     * disappear from the view.
+     */
+    fun reset() {
+        systems.clear()
+    }
+
+    /**
      * TimerIntegration retrieves the delta time since the rendering of the previous frame.
      * Delta time is used to draw the confetti correctly if any frame drops occur.
      */
     class TimerIntegration {
-        var previousTime: Long = -1L
+        private var previousTime: Long = -1L
 
         fun reset() {
             previousTime = -1L

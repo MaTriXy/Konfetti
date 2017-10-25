@@ -3,6 +3,7 @@ package nl.dionsegijn.konfetti
 import android.graphics.Color
 import nl.dionsegijn.konfetti.emitters.BurstEmitter
 import nl.dionsegijn.konfetti.emitters.Emitter
+import nl.dionsegijn.konfetti.emitters.RenderSystem
 import nl.dionsegijn.konfetti.emitters.StreamEmitter
 import nl.dionsegijn.konfetti.models.ConfettiConfig
 import nl.dionsegijn.konfetti.models.LocationModule
@@ -14,7 +15,7 @@ import java.util.*
 /**
  * Created by dionsegijn on 3/26/17.
  */
-class ParticleSystem(val konfettiView: KonfettiView) {
+class ParticleSystem(private val konfettiView: KonfettiView) {
 
     private val random = Random()
 
@@ -30,9 +31,9 @@ class ParticleSystem(val konfettiView: KonfettiView) {
 
     /**
      * Implementation of [BurstEmitter] or [StreamEmitter]
-     * Render function of the emitter is directly accessed from [KonfettiView]
+     * Render function of the renderSystem is directly accessed from [KonfettiView]
      */
-    internal lateinit var emitter: Emitter
+    internal lateinit var renderSystem: RenderSystem
 
     /**
      * Set position to emit particles from
@@ -148,65 +149,52 @@ class ParticleSystem(val konfettiView: KonfettiView) {
      * [amount] - the amount of particles created at burst
      */
     fun burst(amount: Int) {
-        emitter = BurstEmitter(location, velocity, sizes, shapes, colors, confettiConfig).burst(amount)
-        start()
+        startRenderSystem(BurstEmitter().build(amount))
     }
 
     /**
-     * Emit a certain amount of particles per second
-     * calling this function will start the system rendering the confetti
-     * [particlesPerSecond] amount of particles created per second
-     */
-    fun stream(particlesPerSecond: Int) {
-        emitter = StreamEmitter(location, velocity, sizes, shapes, colors, confettiConfig).emit(
-                particlesPerSecond = particlesPerSecond)
-        start()
-    }
-
-    /**
-     * Emit a certain amount of particles per second
+     * Emit a certain amount of particles per second for the duration of specified time
      * calling this function will start the system rendering the confetti
      * [particlesPerSecond] amount of particles created per second
      * [emittingTime] max amount of time to emit in milliseconds
      */
     fun stream(particlesPerSecond: Int, emittingTime: Long) {
-        emitter = StreamEmitter(location, velocity, sizes, shapes, colors, confettiConfig).emit(
-                particlesPerSecond = particlesPerSecond,
-                emittingTime = emittingTime)
-        start()
+        val stream = StreamEmitter().build(particlesPerSecond = particlesPerSecond, emittingTime = emittingTime)
+        startRenderSystem(stream)
     }
 
     /**
-     * Emit a certain amount of particles per second
+     * Emit a certain amount of particles per second until [maxParticles] are created
      * calling this function will start the system rendering the confetti
      * [particlesPerSecond] amount of particles created per second
      * [maxParticles] max amount of particles to emit
      */
     fun stream(particlesPerSecond: Int, maxParticles: Int) {
-        emitter = StreamEmitter(location, velocity, sizes, shapes, colors, confettiConfig).emit(
-                particlesPerSecond = particlesPerSecond,
-                maxParticles = maxParticles)
-        start()
+        val stream = StreamEmitter().build(particlesPerSecond = particlesPerSecond, maxParticles = maxParticles)
+        startRenderSystem(stream)
     }
 
     /**
-     * Emit a certain amount of particles per second
-     * calling this function will start the system rendering the confetti
-     * [particlesPerSecond] amount of particles created per second
-     * [emittingTime] max amount of time to emit in milliseconds
-     * [maxParticles] max amount of particles to emit
+     * Add your own custom Emitter. Create your own class and extend from [Emitter]
+     * See [BurstEmitter] and [StreamEmitter] as example classes on how to create your own emitter
+     * By calling this function the system wil start rendering the confetti according to your custom
+     * implementation
+     * @param [emitter] Custom implementation of the Emitter class
      */
-    fun stream(particlesPerSecond: Int, emittingTime: Long, maxParticles: Int) {
-        emitter = StreamEmitter(location, velocity, sizes, shapes, colors, confettiConfig).emit(
-                particlesPerSecond = particlesPerSecond,
-                emittingTime = emittingTime,
-                maxParticles = maxParticles)
+    fun emitter(emitter: Emitter) {
+        startRenderSystem(emitter)
+    }
+
+    /**
+     * Initialize [RenderSystem] with specified [Emitter]
+     * By calling this function the system will start rendering confetti
+     */
+    private fun startRenderSystem(emitter: Emitter) {
+        renderSystem = RenderSystem(location, velocity, sizes, shapes, colors, confettiConfig, emitter)
         start()
     }
 
-    fun doneEmitting(): Boolean {
-        return emitter.isDoneEmitting()
-    }
+    fun doneEmitting(): Boolean = renderSystem.isDoneEmitting()
 
     /**
      * Add the system to KonfettiView. KonfettiView will initiate the rendering
@@ -216,7 +204,7 @@ class ParticleSystem(val konfettiView: KonfettiView) {
     }
 
     fun activeParticles(): Int {
-        return emitter.getActiveParticles()
+        return renderSystem.getActiveParticles()
     }
 
 }
